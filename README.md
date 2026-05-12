@@ -74,8 +74,6 @@ python dxf_laser_analyzer.py "C:/laser/jobs/**/*.dxf"
 
 When several DXF files are analyzed, the script prints a compact table with one row per file.
 
-The README example below uses an HTML table so numeric alignment is explicit and does not depend on the Markdown renderer:
-
 <table>
   <thead>
     <tr>
