@@ -18,48 +18,14 @@ DXF Laser Analyzer
 
 Command-line tool to analyze DXF geometry for laser cutting.
 
-It reports:
-  1. Total cutting length in mm
-  2. Number of drilling / piercing points
-     Rule: every closed shape/cycle requires one drilling point.
-     Touching closed shapes are counted as separate cycles.
-  3. Number of cooling points
-     Rule: every coordinate with at least one geometric angle strictly smaller
-     than the configured threshold requires one cooling point.
-     Default threshold: 120 degrees.
-
-Install:
-    pip install ezdxf
-
-Usage:
-    python dxf_laser_analyzer.py part.dxf
-    python dxf_laser_analyzer.py *.dxf
-    python dxf_laser_analyzer.py "C:/laser/jobs/*.dxf"
-    python dxf_laser_analyzer.py "C:/laser/jobs/**/*.dxf"
-
-    # Long options remain available:
-    python dxf_laser_analyzer.py part.dxf --details
-    python dxf_laser_analyzer.py part.dxf --flatten-tolerance 0.02 --endpoint-tolerance 0.03
-    python dxf_laser_analyzer.py part.dxf --remove-duplicates
-    python dxf_laser_analyzer.py part.dxf --layers CUT,ENGRAVE
-    python dxf_laser_analyzer.py part.dxf --exclude-layers CONSTRUCTION,TEXT
-    python dxf_laser_analyzer.py part.dxf --json report.json
-
-    # Short aliases are also available:
-    python dxf_laser_analyzer.py part.dxf -v
-    python dxf_laser_analyzer.py part.dxf -f 0.02 -e 0.03
-    python dxf_laser_analyzer.py part.dxf -d
-    python dxf_laser_analyzer.py part.dxf -l CUT,ENGRAVE
-    python dxf_laser_analyzer.py part.dxf -x CONSTRUCTION,TEXT
-    python dxf_laser_analyzer.py part.dxf -j report.json
-
-Notes:
-    - DXF geometry is treated as 2D XY geometry.
-    - Curves are flattened into short line segments for measurement.
-    - Lengths are converted to mm using the DXF $INSUNITS header when possible.
-    - If the DXF is unitless, the script assumes the drawing unit is 1 mm.
-    - Closed contours made from separate entities are detected by joining endpoints
-      within --endpoint-tolerance.
+The full documentation has been moved to README.md.
+Please read README.md for:
+  - installation instructions
+  - command-line options
+  - duplicate detection and duplicate removal behavior
+  - drilling / piercing point calculation
+  - cooling point calculation
+  - examples and limitations
 """
 
 from __future__ import annotations
@@ -1024,7 +990,7 @@ def print_human_report(result: AnalysisResult) -> None:
     if result.unitless_assumed_mm:
         print("Warning: DXF is unitless or has unknown units; drawing units were assumed to be mm.")
     print()
-    print(f"Total cutting length: {result.total_cutting_length_mm:.3f} mm")
+    print(f"Total cutting length: {result.total_cutting_length_mm:.1f} mm")
     print(f"Drilling / piercing points: {result.drilling_points}")
     print(f"Cooling points: {result.cooling_points}")
     print()
@@ -1065,7 +1031,7 @@ def print_human_report(result: AnalysisResult) -> None:
             print(
                 f"  #{comp.component_id}: {status}, "
                 f"cycles={comp.cycle_count}, "
-                f"length={comp.length_mm:.3f} mm, "
+                f"length={comp.length_mm:.1f} mm, "
                 f"vertices={comp.vertex_count}, segments={comp.segment_count}"
             )
 
@@ -1073,7 +1039,7 @@ def print_human_report(result: AnalysisResult) -> None:
         print()
         print("Cooling point details:")
         for point in result.cooling_point_details:
-            print(f"  x={point.x_mm:.3f} mm, y={point.y_mm:.3f} mm, angle={point.angle_deg:.3f}°")
+            print(f"  x={point.x_mm:.1f} mm, y={point.y_mm:.1f} mm, angle={point.angle_deg:.1f}°")
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -1088,7 +1054,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "  -e, --endpoint-tolerance       Endpoint joining tolerance in mm\n"
             "  -a, --angle-threshold          Cooling angle threshold in degrees\n"
             "  -d, --remove-duplicates        Remove duplicate geometry before analysis\n"
-            "  -w, --write-dxf-noduplicate\n"
+            "  -n, -w, --write-dxf-noduplicate\n"
             "                                   Write file_ND.dxf copy when duplicates are found\n"
             "  -l, --layers                   Include only these comma-separated layers\n"
             "  -x, --exclude-layers           Exclude these comma-separated layers\n"
@@ -1145,6 +1111,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "-n",
         "-w",
         "--write-dxf-noduplicate",
         action="store_true",
@@ -1205,18 +1172,22 @@ def print_multi_file_table(results: list[AnalysisResult]) -> None:
                 str(result.drilling_points),
                 str(result.cooling_points),
                 str(duplicate_count),
-                f"{result.total_cutting_length_mm:.3f}",
+                f"{result.total_cutting_length_mm:.1f}",
             )
         )
 
-    headers = ("name", "drill", "cool", "duplicate", "length")
+    headers = ("name", "drill", "cool", "duplicate", "length (mm)")
     widths = [len(header) for header in headers]
     for row in rows:
         for i, value in enumerate(row):
             widths[i] = max(widths[i], len(value))
 
     def fmt(row: tuple[str, str, str, str, str]) -> str:
-        return " | ".join(value.ljust(widths[i]) for i, value in enumerate(row))
+        # Keep the file name left-aligned for readability.
+        # Align numeric columns to the right so values are easy to compare.
+        formatted = [row[0].ljust(widths[0])]
+        formatted.extend(row[i].rjust(widths[i]) for i in range(1, len(row)))
+        return " | ".join(formatted)
 
     print(fmt(headers))
     print("-+-".join("-" * width for width in widths))
@@ -1306,7 +1277,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Error while writing no-duplicate DXF for '{dxf_file}': {exc}", file=sys.stderr)
                 return 2
 
-    # Analysis pass: this always runs, even when -w is used, so the user gets
+    # Analysis pass: this always runs, even when -n/-w is used, so the user gets
     # the normal length / drill / cool / duplicate report after optional writing.
     results: list[AnalysisResult] = []
     for dxf_file in dxf_files:
