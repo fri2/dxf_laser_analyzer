@@ -1088,7 +1088,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
             "  -e, --endpoint-tolerance       Endpoint joining tolerance in mm\n"
             "  -a, --angle-threshold          Cooling angle threshold in degrees\n"
             "  -d, --remove-duplicates        Remove duplicate geometry before analysis\n"
-            "  -n, -w, --write-dxf-noduplicate\n"
+            "  -w, --write-dxf-noduplicate\n"
             "                                   Write file_ND.dxf copy when duplicates are found\n"
             "  -l, --layers                   Include only these comma-separated layers\n"
             "  -x, --exclude-layers           Exclude these comma-separated layers\n"
@@ -1145,7 +1145,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "-n",
         "-w",
         "--write-dxf-noduplicate",
         action="store_true",
@@ -1307,7 +1306,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Error while writing no-duplicate DXF for '{dxf_file}': {exc}", file=sys.stderr)
                 return 2
 
-    # Analysis pass: this always runs, even when -n/-w is used, so the user gets
+    # Analysis pass: this always runs, even when -w is used, so the user gets
     # the normal length / drill / cool / duplicate report after optional writing.
     results: list[AnalysisResult] = []
     for dxf_file in dxf_files:
