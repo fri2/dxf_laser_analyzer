@@ -72,14 +72,44 @@ python dxf_laser_analyzer.py "C:/laser/jobs/**/*.dxf"
 
 ## Output for multiple files
 
-When several DXF files are analyzed, the script prints a compact table with one row per file:
+When several DXF files are analyzed, the script prints a compact table with one row per file.
 
-```text
-name      | drill | cool | duplicate | length
-----------+-------+------+-----------+---------
-part1.dxf | 23    | 49   | 4         | 1542.381
-part2.dxf | 12    | 18   | 0         | 822.500
-```
+The README example below uses an HTML table so numeric alignment is explicit and does not depend on the Markdown renderer:
+
+<table>
+  <thead>
+    <tr>
+      <th align="left">name</th>
+      <th align="right">drill</th>
+      <th align="right">cool</th>
+      <th align="right">duplicate</th>
+      <th align="right">length (mm)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="left">part1.dxf</td>
+      <td align="right">23</td>
+      <td align="right">49</td>
+      <td align="right">4</td>
+      <td align="right">1542.4</td>
+    </tr>
+    <tr>
+      <td align="left">part2.dxf</td>
+      <td align="right">12</td>
+      <td align="right">18</td>
+      <td align="right">0</td>
+      <td align="right">822.5</td>
+    </tr>
+    <tr>
+      <td align="left">part3.dxf</td>
+      <td align="right">1</td>
+      <td align="right">3</td>
+      <td align="right">12</td>
+      <td align="right">27.8</td>
+    </tr>
+  </tbody>
+</table>
 
 Columns:
 
@@ -87,7 +117,14 @@ Columns:
 - `drill`: drilling / piercing point count
 - `cool`: cooling point count
 - `duplicate`: duplicate geometry count
-- `length`: total cutting length in mm
+- `length (mm)`: total cutting length in millimetres, rounded to one decimal digit
+
+Formatting notes:
+
+- The file name column is left-aligned.
+- Numeric columns use `align="right"` in the README example.
+- The displayed length is rounded to one decimal digit.
+- JSON output keeps the numeric value from the analysis result.
 
 ---
 
